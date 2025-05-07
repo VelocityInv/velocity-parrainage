@@ -103,11 +103,11 @@ def admin_dashboard():
                         actifs += 1
                 except:
                     pass
-            try:
-                user = await bot.get_chat_member(chat_id=CANAL_ID, user_id=int(parrain_id))
-                name = user.user.first_name
-            except:
-                name = f"ID {parrain_id}"
+                try:
+                    user = await bot.get_chat(chat_id=CANAL_ID, user_id=int(parrain_id))
+                    name = user.first_name
+                except:
+                    name = f"ID {parrain_id}"
             output.write(f"{parrain_id} | {name} | {len(filleuls)} | {actifs}\n")
 
     import asyncio
