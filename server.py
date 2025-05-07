@@ -89,8 +89,9 @@ def admin_dashboard():
         referrals = json.load(f)
 
     output = StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["Parrain ID", "Prénom", "Filleuls totaux", "Filleuls actifs"])
+
+    output.write("Parrain ID | Prénom | Filleuls totaux | Filleuls actifs\n")
+    output.write("="*60 + "\n")
 
     async def process():
         for parrain_id, filleuls in referrals.items():
@@ -107,17 +108,19 @@ def admin_dashboard():
                 name = user.user.first_name
             except:
                 name = f"ID {parrain_id}"
-            writer.writerow([parrain_id, name, len(filleuls), actifs])
+            output.write(f"{parrain_id} | {name} | {len(filleuls)} | {actifs}\n")
 
     import asyncio
     asyncio.run(process())
 
-    csv_output = output.getvalue()
+    # Retourner un fichier texte avec les données
+    text_output = output.getvalue()
     return Response(
-        csv_output,
-        mimetype="text/csv",
-        headers={"Content-Disposition": "attachment;filename=parrainage.csv"}
+        text_output,
+        mimetype="text/plain",
+        headers={"Content-Disposition": "attachment;filename=parrainage.txt"}
     )
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
