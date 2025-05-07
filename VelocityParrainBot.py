@@ -10,6 +10,11 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram import Router
 from dotenv import load_dotenv
 
+load_dotenv()  # Charge les variables si en local
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CANAL_ID = os.getenv("CANAL_ID")
+
 # Chargement des variables d'environnement
 load_dotenv(dotenv_path="token.env")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -33,6 +38,8 @@ if os.path.exists(REFERRALS_FILE):
             referrals = {}
 else:
     referrals = {}
+
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 @router.message(CommandStart())
 async def start_handler(message: Message):
@@ -61,8 +68,14 @@ async def start_handler(message: Message):
     canal_url = "https://t.me/VelocityInvestments"
     first_name = message.from_user.first_name
 
+    # 👉 Bouton WebApp
+    webapp_url = "https://velocity-parrainage.onrender.com"
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🚀 Ouvrir l'application", web_app={"url": webapp_url})]
+    ])
+
     await message.answer(
-        f"👋 Bienvenue <b>{message.from_user.first_name}</b> !\n\n"
+        f"👋 Bienvenue <b>{first_name}</b> !\n\n"
         f"👉 Rejoins le canal Telegram pour valider ton parrainage :\n"
         f"📲 <a href='{canal_url}'>{canal_url}</a>\n\n"
         f"Voici également ton lien de parrainage unique 👇\n"
@@ -72,8 +85,10 @@ async def start_handler(message: Message):
         f"/stats – Voir combien de personnes tu as parrainées\n"
         f"/top – Classement des parrains\n",
         parse_mode=ParseMode.HTML,
-        disable_web_page_preview=True
+        disable_web_page_preview=True,
+        reply_markup=keyboard
     )
+
 
 @router.message(Command("stats"))
 async def stats_handler(message: Message):
