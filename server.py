@@ -1,0 +1,75 @@
+import os
+import json
+from flask import Flask, send_from_directory, request, jsonify
+from dotenv import load_dotenv
+from telegram import Bot
+
+load_dotenv("token.env")
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CANAL_ID = os.getenv("CANAL_ID")
+REFERRALS_FILE = "referrals.json"
+
+bot = Bot(BOT_TOKEN)
+app = Flask(__name__, static_folder="webapp")
+
+# Servir les fichiers statiques
+@app.route("/")
+def root():
+    return send_from_directory("webapp", "index.html")
+
+@app.route("/<path:path>")
+def static_files(path):
+    return send_from_directory("webapp", path)
+
+# API de données
+@app.route("/api/stats")
+def api_stats():
+    user_id = request.args.get("user_id")
+    if not user_id:
+        return jsonify({"error": "user_id manquant"}), 400
+
+    # Charger les données
+    if os.path.exists(REFERRALS_FILE):
+        with open(REFERRALS_FILE, "r") as f:
+            referrals = json.load(f)
+    else:
+        referrals = {}
+
+    filleuls = referrals.get(user_id, [])
+    actifs = 0
+
+    for fid in filleuls:
+        try:
+            status = bot.get_chat_member(CANAL_ID, fid)
+            if status.status in ["member", "administrator", "creator"]:
+                actifs += 1
+        except:
+            pass
+
+    # Classement
+    classement = []
+    for parrain_id, filleuls_list in referrals.items():
+        actifs_count = 0
+        for fid in filleuls_list:
+            try:
+                status = bot.get_chat_member(CANAL_ID, fid)
+                if status.status in ["member", "administrator", "creator"]:
+                    actifs_count += 1
+            except:
+                pass
+        classement.append((parrain_id, actifs_count))
+
+    classement.sort(key=lambda x: x[1], reverse=True)
+    position = next((i + 1 for i, (pid, _) in enumerate(classement) if pid == user_id), None)
+
+    link = f"https://t.me/VelocityParrainBot?start={user_id}"
+
+    return jsonify({
+        "actifs": actifs,
+        "position": position or "-",
+        "link": link
+    })
+
+if __name__ == "__main__":
+    app.run(debug=True)

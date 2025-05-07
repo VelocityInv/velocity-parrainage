@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Velocity Parrainage</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>👋 Bienvenue <span id="user-name">...</span> !</h1>
+
+    <p>👥 Nombre de filleuls actifs : <b><span id="actifs">...</span></b></p>
+    <p>🏆 Ta position dans le classement : <b>#<span id="position">...</span></b></p>
+
+    <div class="link-block">
+      <p>🔗 Ton lien de parrainage :</p>
+      <code id="referral-link">...</code>
+    </div>
+
+    <div class="buttons">
+      <button onclick="copyLink()">📎 Copier le lien</button>
+      <button onclick="reload()">🔄 Actualiser</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
