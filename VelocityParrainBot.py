@@ -5,7 +5,6 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.enums.parse_mode import ParseMode
 from aiogram.types import Message
 from aiogram.filters import CommandStart, Command
-from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram import Router
 from dotenv import load_dotenv
@@ -178,7 +177,7 @@ async def top_handler(message: Message):
 
 # Lancement du bot
 async def main():
-    bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    bot = Bot(token=BOT_TOKEN, parse_mode=ParseMode.HTML)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
