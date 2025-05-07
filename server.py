@@ -1,14 +1,17 @@
 import os
 import json
-from flask import Flask, send_from_directory, request, jsonify
+import csv
+from flask import Flask, send_from_directory, request, jsonify, Response
 from dotenv import load_dotenv
 from telegram import Bot
+from io import StringIO
 
 load_dotenv("token.env")
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CANAL_ID = os.getenv("CANAL_ID")
 REFERRALS_FILE = "referrals.json"
+ADMIN_KEY = "velocity2025admin"  # Change la clé secrète si tu veux plus de sécurité
 
 bot = Bot(BOT_TOKEN)
 app = Flask(__name__, static_folder="webapp")
@@ -70,6 +73,51 @@ def api_stats():
         "position": position or "-",
         "link": link
     })
+
+# Route pour accéder aux données d'admin
+@app.route("/admin")
+def admin_dashboard():
+    key = request.args.get("key")
+    if key != ADMIN_KEY:
+        return "Accès refusé", 403
+
+    # Charger le fichier referrals.json
+    if not os.path.exists(REFERRALS_FILE):
+        return "Aucune donnée de parrainage."
+
+    with open(REFERRALS_FILE, "r") as f:
+        referrals = json.load(f)
+
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Parrain ID", "Prénom", "Filleuls totaux", "Filleuls actifs"])
+
+    async def process():
+        for parrain_id, filleuls in referrals.items():
+            actifs = 0
+            for fid in filleuls:
+                try:
+                    member = await bot.get_chat_member(CANAL_ID, fid)
+                    if member.status in ["member", "administrator", "creator"]:
+                        actifs += 1
+                except:
+                    pass
+            try:
+                user = await bot.get_chat_member(chat_id=CANAL_ID, user_id=int(parrain_id))
+                name = user.user.first_name
+            except:
+                name = f"ID {parrain_id}"
+            writer.writerow([parrain_id, name, len(filleuls), actifs])
+
+    import asyncio
+    asyncio.run(process())
+
+    csv_output = output.getvalue()
+    return Response(
+        csv_output,
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment;filename=parrainage.csv"}
+    )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
