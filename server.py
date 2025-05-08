@@ -3,6 +3,7 @@ import json
 from flask import Flask, request, jsonify, send_from_directory, Response
 from dotenv import load_dotenv
 from telegram import Bot, Update
+from aiogram.dispatcher import Dispatcher  # Ajout de l'importation
 from io import StringIO
 import asyncio
 import logging
@@ -124,7 +125,7 @@ def admin_dashboard():
 
 # Webhook handling function
 def webhook(update: Update):
-    dispatcher = Dispatcher(bot, update, workers=4)
+    dispatcher = Dispatcher(bot, update, workers=4)  # Ici, Dispatcher est utilisé pour gérer les mises à jour
     dispatcher.process_update(update)
 
 @app.route("/webhook", methods=["POST"])
@@ -137,11 +138,9 @@ def webhook_handler():
 
 if __name__ == "__main__":
     # Set Webhook on Telegram
-    webhook_url = os.getenv("WEBHOOK_URL")  # You should set this to the proper URL from Render
+    webhook_url = os.getenv("WEBHOOK_URL")  # Vous devez définir l'URL correcte du webhook
     bot.set_webhook(url=webhook_url + "/webhook")
     
     # Run the Flask app on Render, make sure to use the appropriate port
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
-
-
 
