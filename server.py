@@ -3,7 +3,8 @@ import json
 from flask import Flask, request, jsonify, send_from_directory, Response
 from dotenv import load_dotenv
 from telegram import Bot, Update
-from aiogram import Dispatcher  # Mise à jour pour aiogram 3.x
+from aiogram import Dispatcher, types
+from aiogram.client import Application  # Ajout de l'importation correcte pour aiogram 3.x
 from io import StringIO
 import asyncio
 import logging
@@ -124,16 +125,17 @@ def admin_dashboard():
     )
 
 # Webhook handling function
-def webhook(update: Update):
-    dispatcher = Dispatcher(bot)  # Pas de workers dans aiogram 3.x
-    dispatcher.process_update(update)
+async def webhook(update: Update):
+    application = Application.builder().token(BOT_TOKEN).build()  # Créer une instance de l'Application
+    dispatcher = Dispatcher(application)  # Utiliser l'application pour créer le Dispatcher
+    await dispatcher.process_update(update)
 
 @app.route("/webhook", methods=["POST"])
 def webhook_handler():
     if request.method == "POST":
         json_str = request.get_data().decode("UTF-8")
         update = Update.de_json(json.loads(json_str), bot)
-        webhook(update)
+        asyncio.run(webhook(update))  # Utiliser asyncio pour appeler le webhook
         return "ok"
 
 if __name__ == "__main__":
@@ -143,5 +145,4 @@ if __name__ == "__main__":
     
     # Run the Flask app on Render, make sure to use the appropriate port
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
-
 
