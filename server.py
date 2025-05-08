@@ -1,10 +1,10 @@
 import os
 import json
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, Response
 from dotenv import load_dotenv
 from telegram import Bot, Update
-from telegram.ext import Dispatcher, CommandHandler
-from telegram.ext import Updater
+from io import StringIO
+import asyncio
 import logging
 
 load_dotenv("token.env")
@@ -12,6 +12,7 @@ load_dotenv("token.env")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CANAL_ID = os.getenv("CANAL_ID")
 REFERRALS_FILE = "referrals.json"
+ADMIN_KEY = "velocity2025admin"
 
 bot = Bot(BOT_TOKEN)
 app = Flask(__name__, static_folder="webapp")
@@ -36,6 +37,7 @@ def api_stats():
     if not user_id:
         return jsonify({"error": "user_id manquant"}), 400
 
+    # Charger les données
     if os.path.exists(REFERRALS_FILE):
         with open(REFERRALS_FILE, "r") as f:
             referrals = json.load(f)
@@ -44,6 +46,7 @@ def api_stats():
 
     filleuls = referrals.get(user_id, [])
     actifs = 0
+
     for fid in filleuls:
         try:
             status = bot.get_chat_member(CANAL_ID, fid)
@@ -76,6 +79,49 @@ def api_stats():
         "link": link
     })
 
+# Admin page pour générer un fichier texte
+@app.route("/admin")
+def admin_dashboard():
+    key = request.args.get("key")
+    if key != ADMIN_KEY:
+        return "Accès refusé", 403
+
+    if not os.path.exists(REFERRALS_FILE):
+        return "Aucune donnée de parrainage."
+
+    with open(REFERRALS_FILE, "r") as f:
+        referrals = json.load(f)
+
+    output = StringIO()
+    output.write("Parrain ID | Prénom | Filleuls totaux | Filleuls actifs\n")
+    output.write("="*60 + "\n")
+
+    async def process():
+        for parrain_id, filleuls in referrals.items():
+            actifs = 0
+            for fid in filleuls:
+                try:
+                    member = await bot.get_chat_member(CANAL_ID, fid)
+                    if member.status in ["member", "administrator", "creator"]:
+                        actifs += 1
+                except:
+                    pass
+            try:
+                user = await bot.get_chat(chat_id=CANAL_ID, user_id=int(parrain_id))
+                name = user.first_name
+            except:
+                name = f"ID {parrain_id}"
+            output.write(f"{parrain_id} | {name} | {len(filleuls)} | {actifs}\n")
+
+    asyncio.run(process())
+
+    text_output = output.getvalue()
+    return Response(
+        text_output,
+        mimetype="text/plain",
+        headers={"Content-Disposition": "attachment;filename=parrainage.txt"}
+    )
+
 # Webhook handling function
 def webhook(update: Update):
     dispatcher = Dispatcher(bot, update, workers=4)
@@ -96,5 +142,6 @@ if __name__ == "__main__":
     
     # Run the Flask app on Render, make sure to use the appropriate port
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+
 
 
