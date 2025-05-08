@@ -1,11 +1,9 @@
 import os
 import json
-import threading
 from flask import Flask, send_from_directory, request, jsonify, Response
 from dotenv import load_dotenv
 from telegram import Bot
 from io import StringIO
-import asyncio
 
 load_dotenv("token.env")
 
@@ -107,6 +105,7 @@ def admin_dashboard():
                 name = f"ID {parrain_id}"
             output.write(f"{parrain_id} | {name} | {len(filleuls)} | {actifs}\n")
 
+    import asyncio
     asyncio.run(process())
 
     text_output = output.getvalue()
@@ -116,19 +115,13 @@ def admin_dashboard():
         headers={"Content-Disposition": "attachment;filename=parrainage.txt"}
     )
 
-# Fonction pour démarrer uniquement le bot dans un thread séparé
-def start_bot():
+# Démarre uniquement le bot avec le polling
+if __name__ == "__main__":
     from aiogram import Dispatcher
-    from aiogram.types import ParseMode
 
     dp = Dispatcher(bot)
 
-    # Démarre le bot Telegram en mode polling
+    # Démarrer le bot sans Flask
     dp.start_polling()
 
-if __name__ == "__main__":
-    bot_thread = threading.Thread(target=start_bot)
-    bot_thread.start()
-
-    # On ne lance pas Flask ici, car le bot fait déjà le travail
 
