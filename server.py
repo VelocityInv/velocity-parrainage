@@ -9,6 +9,10 @@ from io import StringIO
 import logging
 import asyncio
 import threading
+import subprocess
+import sys
+
+subprocess.check_call([sys.executable, "-m", "pip", "install", "aiogram==3.1.1"])
 
 load_dotenv("token.env")
 
