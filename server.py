@@ -3,8 +3,7 @@ import json
 from flask import Flask, request, jsonify, send_from_directory, Response
 from dotenv import load_dotenv
 from telegram import Bot, Update
-from aiogram import Dispatcher, types
-from aiogram.client import Application
+from aiogram import Application, Dispatcher  # Correct import for aiogram 3.x
 from io import StringIO
 import asyncio
 import logging
