@@ -4,10 +4,11 @@ from flask import Flask, request, jsonify, send_from_directory, Response
 from dotenv import load_dotenv
 from telegram import Bot, Update
 from aiogram import Dispatcher, types
-from aiogram.client import Application  # Ajout de l'importation correcte pour aiogram 3.x
+from aiogram.client import Application
 from io import StringIO
 import asyncio
 import logging
+import threading
 
 load_dotenv("token.env")
 
@@ -138,11 +139,21 @@ def webhook_handler():
         asyncio.run(webhook(update))  # Utiliser asyncio pour appeler le webhook
         return "ok"
 
+# Fonction pour démarrer le bot en mode polling
+def start_bot():
+    application = Application.builder().token(BOT_TOKEN).build()
+    dispatcher = Dispatcher(application)
+    application.run_polling()
+
 if __name__ == "__main__":
     # Set Webhook on Telegram
     webhook_url = os.getenv("WEBHOOK_URL")  # Assure-toi que cette URL est bien configurée dans ton .env
     bot.set_webhook(url=webhook_url + "/webhook")
     
-    # Run the Flask app on Render, make sure to use the appropriate port
+    # Lancer le bot dans un thread séparé (en mode polling)
+    bot_thread = threading.Thread(target=start_bot)
+    bot_thread.start()
+
+    # Run the Flask app on Render
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
 
