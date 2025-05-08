@@ -2,11 +2,12 @@ import os
 import json
 from flask import Flask, request, jsonify, send_from_directory, Response
 from dotenv import load_dotenv
-from telegram import Bot, Update
-from aiogram import Application, Dispatcher  # Correct import for aiogram 3.x
+from aiogram import Bot, Dispatcher
+from aiogram.types import Update
+from aiogram.utils import executor
 from io import StringIO
-import asyncio
 import logging
+import asyncio
 import threading
 
 load_dotenv("token.env")
@@ -16,7 +17,8 @@ CANAL_ID = os.getenv("CANAL_ID")
 REFERRALS_FILE = "referrals.json"
 ADMIN_KEY = "velocity2025admin"
 
-bot = Bot(BOT_TOKEN)
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher(bot)
 app = Flask(__name__, static_folder="webapp")
 
 # Configure logging
@@ -115,7 +117,7 @@ def admin_dashboard():
                 name = f"ID {parrain_id}"
             output.write(f"{parrain_id} | {name} | {len(filleuls)} | {actifs}\n")
 
-    asyncio.run(process())
+    asyncio.run(process())  # Exécuter la fonction asynchrone
 
     text_output = output.getvalue()
     return Response(
@@ -126,9 +128,7 @@ def admin_dashboard():
 
 # Webhook handling function
 async def webhook(update: Update):
-    application = Application.builder().token(BOT_TOKEN).build()  # Créer une instance de l'Application
-    dispatcher = Dispatcher(application)  # Utiliser l'application pour créer le Dispatcher
-    await dispatcher.process_update(update)
+    await dp.process_update(update)
 
 @app.route("/webhook", methods=["POST"])
 def webhook_handler():
@@ -140,9 +140,7 @@ def webhook_handler():
 
 # Fonction pour démarrer le bot en mode polling
 def start_bot():
-    application = Application.builder().token(BOT_TOKEN).build()
-    dispatcher = Dispatcher(application)
-    application.run_polling()
+    executor.start_polling(dp)
 
 if __name__ == "__main__":
     # Set Webhook on Telegram
@@ -155,4 +153,5 @@ if __name__ == "__main__":
 
     # Run the Flask app on Render
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+
 
