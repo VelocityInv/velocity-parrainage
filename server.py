@@ -1,6 +1,6 @@
 import os
 import json
-import csv
+import threading
 from flask import Flask, send_from_directory, request, jsonify, Response
 from dotenv import load_dotenv
 from telegram import Bot
@@ -11,7 +11,7 @@ load_dotenv("token.env")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CANAL_ID = os.getenv("CANAL_ID")
 REFERRALS_FILE = "referrals.json"
-ADMIN_KEY = "velocity2025admin"  # Change la clé secrète si tu veux plus de sécurité
+ADMIN_KEY = "velocity2025admin"
 
 bot = Bot(BOT_TOKEN)
 app = Flask(__name__, static_folder="webapp")
@@ -32,7 +32,6 @@ def api_stats():
     if not user_id:
         return jsonify({"error": "user_id manquant"}), 400
 
-    # Charger les données
     if os.path.exists(REFERRALS_FILE):
         with open(REFERRALS_FILE, "r") as f:
             referrals = json.load(f)
@@ -50,7 +49,6 @@ def api_stats():
         except:
             pass
 
-    # Classement
     classement = []
     for parrain_id, filleuls_list in referrals.items():
         actifs_count = 0
@@ -74,14 +72,13 @@ def api_stats():
         "link": link
     })
 
-# Route pour accéder aux données d'admin
+# Admin page pour générer un fichier texte
 @app.route("/admin")
 def admin_dashboard():
     key = request.args.get("key")
     if key != ADMIN_KEY:
         return "Accès refusé", 403
 
-    # Charger le fichier referrals.json
     if not os.path.exists(REFERRALS_FILE):
         return "Aucune donnée de parrainage."
 
@@ -89,7 +86,6 @@ def admin_dashboard():
         referrals = json.load(f)
 
     output = StringIO()
-
     output.write("Parrain ID | Prénom | Filleuls totaux | Filleuls actifs\n")
     output.write("="*60 + "\n")
 
@@ -103,17 +99,16 @@ def admin_dashboard():
                         actifs += 1
                 except:
                     pass
-                try:
-                    user = await bot.get_chat(chat_id=CANAL_ID, user_id=int(parrain_id))
-                    name = user.first_name
-                except:
-                    name = f"ID {parrain_id}"
+            try:
+                user = await bot.get_chat(chat_id=CANAL_ID, user_id=int(parrain_id))
+                name = user.first_name
+            except:
+                name = f"ID {parrain_id}"
             output.write(f"{parrain_id} | {name} | {len(filleuls)} | {actifs}\n")
 
     import asyncio
     asyncio.run(process())
 
-    # Retourner un fichier texte avec les données
     text_output = output.getvalue()
     return Response(
         text_output,
@@ -121,9 +116,24 @@ def admin_dashboard():
         headers={"Content-Disposition": "attachment;filename=parrainage.txt"}
     )
 
-# Vérification du port
-print(f"Running on port {os.environ.get('PORT', 5000)}")
+# Créer un thread pour Flask et lancer le bot en parallèle
+def start_flask():
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+
+def start_bot():
+    from aiogram import Dispatcher
+    from aiogram.types import ParseMode
+
+    dp = Dispatcher(bot)
+    # Démarre le bot Telegram en parallèle
+
+    # ton code de gestion des commandes ici, par exemple : dp.register_message_handler()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    flask_thread = threading.Thread(target=start_flask)
+    flask_thread.start()
+
+    bot_thread = threading.Thread(target=start_bot)
+    bot_thread.start()
+
 
