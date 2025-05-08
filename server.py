@@ -2,9 +2,9 @@ import os
 import json
 from flask import Flask, request, jsonify, send_from_directory, Response
 from dotenv import load_dotenv
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, types
 from aiogram.types import Update
-from aiogram.utils import executor
+from aiogram import Application  # On utilise directement Application
 from io import StringIO
 import logging
 import asyncio
@@ -18,7 +18,6 @@ REFERRALS_FILE = "referrals.json"
 ADMIN_KEY = "velocity2025admin"
 
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher(bot)
 app = Flask(__name__, static_folder="webapp")
 
 # Configure logging
@@ -128,7 +127,8 @@ def admin_dashboard():
 
 # Webhook handling function
 async def webhook(update: Update):
-    await dp.process_update(update)
+    application = Application.builder().token(BOT_TOKEN).build()
+    await application.process_update(update)
 
 @app.route("/webhook", methods=["POST"])
 def webhook_handler():
@@ -140,7 +140,8 @@ def webhook_handler():
 
 # Fonction pour démarrer le bot en mode polling
 def start_bot():
-    executor.start_polling(dp)
+    application = Application.builder().token(BOT_TOKEN).build()
+    application.run_polling()
 
 if __name__ == "__main__":
     # Set Webhook on Telegram
