@@ -2,12 +2,11 @@ import os
 import json
 import logging
 from aiogram import Bot, Dispatcher, types
-from aiogram.enums.parse_mode import ParseMode
-from aiogram.types import Message
-from aiogram.filters import CommandStart, Command
+from aiogram.types import Message, ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram import Router
 from dotenv import load_dotenv
+from aiogram.utils import executor
 
 load_dotenv()  # Charge les variables si en local
 
@@ -19,10 +18,14 @@ load_dotenv(dotenv_path="token.env")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CANAL_ID = os.getenv("CANAL_ID")  # ex: @VelocityInvestments
 
-# Configuration
+# Configuration du logging
 logging.basicConfig(level=logging.INFO)
-router = Router()
+logger = logging.getLogger(__name__)
+
+# Initialisation du bot et du dispatcher
+bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
+router = Router()
 dp.include_router(router)
 
 # Fichier de stockage des parrainages
@@ -38,8 +41,7 @@ if os.path.exists(REFERRALS_FILE):
 else:
     referrals = {}
 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
+# Commande /start
 @router.message(CommandStart())
 async def start_handler(message: Message):
     user_id = message.from_user.id
@@ -61,7 +63,6 @@ async def start_handler(message: Message):
         except:
             pass
 
-    bot = message.bot
     bot_username = (await bot.get_me()).username
     referral_link = f"https://t.me/{bot_username}?start={user_id}"
     canal_url = "https://t.me/VelocityInvestments"
@@ -69,7 +70,7 @@ async def start_handler(message: Message):
 
     # 👉 Bouton WebApp
     webapp_url = "https://velocity-parrainage.onrender.com"
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[ 
         [InlineKeyboardButton(text="🚀 Ouvrir l'application", web_app={"url": webapp_url})]
     ])
 
@@ -88,7 +89,7 @@ async def start_handler(message: Message):
         reply_markup=keyboard
     )
 
-
+# Commande /stats
 @router.message(Command("stats"))
 async def stats_handler(message: Message):
     user_id = str(message.from_user.id)
@@ -137,6 +138,7 @@ async def stats_handler(message: Message):
         parse_mode=ParseMode.HTML
     )
 
+# Commande /top
 @router.message(Command("top"))
 async def top_handler(message: Message):
     bot = message.bot
@@ -183,5 +185,4 @@ async def main():
 if __name__ == "__main__":
     import asyncio
     asyncio.run(main())
-
 
