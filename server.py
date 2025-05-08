@@ -17,6 +17,9 @@ ADMIN_KEY = "velocity2025admin"
 bot = Bot(BOT_TOKEN)
 app = Flask(__name__, static_folder="webapp")
 
+# Variable globale pour éviter les conflits de polling
+polling_active = False
+
 # Servir les fichiers statiques
 @app.route("/")
 def root():
@@ -33,6 +36,7 @@ def api_stats():
     if not user_id:
         return jsonify({"error": "user_id manquant"}), 400
 
+    # Charger les données
     if os.path.exists(REFERRALS_FILE):
         with open(REFERRALS_FILE, "r") as f:
             referrals = json.load(f)
@@ -50,6 +54,7 @@ def api_stats():
         except:
             pass
 
+    # Classement
     classement = []
     for parrain_id, filleuls_list in referrals.items():
         actifs_count = 0
@@ -116,14 +121,17 @@ def admin_dashboard():
         headers={"Content-Disposition": "attachment;filename=parrainage.txt"}
     )
 
-# Fonction pour démarrer uniquement le bot dans un thread séparé
+# Fonction pour démarrer le bot, avec verrouillage de polling
 def start_bot():
+    global polling_active
+    if polling_active:
+        print("Bot is already running.")
+        return
+
+    polling_active = True
     from aiogram import Dispatcher
-    from aiogram.types import ParseMode
 
     dp = Dispatcher(bot)
-
-    # Démarre le bot Telegram en mode polling
     dp.start_polling()
 
 if __name__ == "__main__":
